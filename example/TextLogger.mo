@@ -24,11 +24,20 @@ shared(msg) actor class TextLogger() {
     allowed := ids;
   };
 
-  // Add a set of messages to the log.
+ // Add a set of messages to the log and new a canister while overflow.
   public shared (msg) func append(msgs: [Text]) {
+    var i=0;
     assert(Option.isSome(Array.find(allowed, func (id: Principal) : Bool { msg.caller == id })));
-    logger.append(msgs);
-  };
+    if(i<100){
+      logger.append(msgs);
+      i := i + 1;
+    }
+    else {
+      shared(msg) actor logger-expand(){
+        stable var state : Logger.State<Text> = Logger.new<Text>(0, null);
+        let logger = Logger.Logger<Text>(state);
+      }
+    }
 
   // Return log stats, where:
   //   start_index is the first index of log message.
@@ -43,9 +52,5 @@ shared(msg) actor class TextLogger() {
     logger.view(from, to)
   };
 
-  // Drop past buckets (oldest first).
-  public shared (msg) func pop_buckets(num: Nat) {
-    assert(msg.caller == OWNER);
-    logger.pop_buckets(num)
-  }
+
 }
